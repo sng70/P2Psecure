@@ -1,6 +1,8 @@
 import socket
 import threading
 
+from chatroom import Chatroom
+
 HOST = "127.0.0.1"
 PORT = 9090
 
@@ -15,7 +17,9 @@ nicknames = []
 
 def broadcast(message):
     for client in clients:
+        print(client)
         client.send(message)
+
 
 def handle(client):
     while True:
@@ -32,6 +36,7 @@ def handle(client):
             nickname = nicknames[index]
             nicknames.remove(nickname)
             break
+
 
 def receive():
     while True:
@@ -51,5 +56,6 @@ def receive():
         thread = threading.Thread(target=handle, args=(client,))
         thread.start()
 
-print("Server is listening...")
+
+print("Server is listening... please do not connect :3")
 receive()
