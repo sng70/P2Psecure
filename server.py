@@ -42,12 +42,8 @@ class Server:
             self.write(chatroom, client)
 
     def handle_client(self, client_socket):
-        self.write("Fuck you", client_socket)
         time.sleep(10)
-        self.write(
-            "Welcome to the chat server! Do you want to create or join a chatroom? (create/join) ",
-            client_socket
-        )
+        self.write("Welcome to the chat server! Do you want to create or join a chatroom? (create/join) ", client_socket)
         choice = self.receive(client_socket)
         print(choice)
 
