@@ -1,5 +1,3 @@
-import random
-
 class Chatroom:
     def __init__(self, chatroom_name, host_client, P, G):
         self.chatroom_name = chatroom_name
@@ -13,14 +11,36 @@ class Chatroom:
 
     def broadcast(self, message):
         for client in self.clients:
-            client.send(message)
+            self.write(message, client)
+
+    def create_header(self, message):
+        header = f"{len(message):<5}"
+        return header
+
+    def write(self, message, client):
+        header = self.create_header(message)
+
+        client.send(header.encode('utf-8'))
+        client.send(message.encode('utf-8'))
+
+
+    def receive(self, client):
+        message_len = int(client.recv(5).decode("utf-8"))
+        message = client.recv(message_len)
+
+        if len(message) != message_len:
+            client.send("Error while receiving the message")
+        else:
+            return message.decode("utf-8")
 
     def key_exchange(self, clients):
-        self.broadcast(self.P.encode("utf-8"))
-        self.broadcast(self.G.encode("utf-8"))
+        self.broadcast("Diffie-Helman")
 
-        host_message = clients[0].receive()
-        joining_message = clients[1].receive()
+        self.broadcast(self.P)
+        self.broadcast(self.G)
+
+        host_message = self.receive(self.host_client)
+        joining_message = self.receive(self.joining_client)
 
         clients[0].send(joining_message)
         clients[1].send(host_message)
@@ -29,13 +49,8 @@ class Chatroom:
         while True:
             for client in self.clients:
                 try:
-                    message_len = client.recv(10).decode("utf-8")
-                    message = client.recv(message_len)
-
-                    if len(message) != message_len:
-                        break
-                    else:
-                        self.broadcast(message)
+                    message = self.receive(client)
+                    self.broadcast(message)
                 except:
                     if client == self.host_client:
                         self.clients.remove(client)
@@ -44,7 +59,7 @@ class Chatroom:
                         self.clients.remove(client)
                         self.joining_client = None
 
-    def reveive(self):
+    def run(self):
         while True:
             if self.joining_client is not None:
                 self.key_exchange(self.clients)
