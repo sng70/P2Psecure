@@ -9,6 +9,7 @@ class Chatroom:
         self.P = P
         self.G = G
 
+
     def broadcast(self, message):
         for client in self.clients:
             self.write(message, client)
@@ -33,7 +34,7 @@ class Chatroom:
         else:
             return message.decode("utf-8")
 
-    def key_exchange(self, clients):
+    def key_exchange(self):
         self.broadcast("Diffie-Helman")
 
         self.broadcast(self.P)
@@ -42,8 +43,11 @@ class Chatroom:
         host_message = self.receive(self.host_client)
         joining_message = self.receive(self.joining_client)
 
-        clients[0].send(joining_message)
-        clients[1].send(host_message)
+        self.host_client.send(joining_message)
+        self.joining_client.send(host_message)
+
+        self.broadcast("Key exchange ended")
+
 
     def handle(self):
         while True:
@@ -62,6 +66,7 @@ class Chatroom:
     def run(self):
         while True:
             if self.joining_client is not None:
-                self.key_exchange(self.clients)
+                self.key_exchange()
+                self.handle()
             else:
                 self.handle()

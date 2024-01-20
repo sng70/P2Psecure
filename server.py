@@ -11,6 +11,9 @@ class Server:
         self.ip = ip
         self.port = port
 
+        self.P = 321
+        self.G = 2
+
     def receive(self, client):
         message_len = int(client.recv(5).decode("utf-8"))
         message = client.recv(message_len)
@@ -41,40 +44,36 @@ class Server:
         for chatroom in chatroom_names:
             self.write(chatroom, client)
 
-    def handle_client(self, client_socket):
+    def handle_client(self, client):
         time.sleep(10)
-        self.write("Welcome to the chat server! Do you want to create or join a chatroom? (create/join) ", client_socket)
-        choice = self.receive(client_socket)
-        print(choice)
+        self.write("Welcome to the chat server! Do you want to create or join a chatroom? (create/join) ", client)
+        choice = self.receive(client)
 
-        if choice == "create":
-            self.write("Enter chatroom name: ", client_socket)
-            chatroom_name = self.receive(client_socket)
+        if choice.lower() == "create":
+            self.write("Enter chatroom name: ", client)
+            chatroom_name = self.receive(client)
 
-            P = "12345678901234567890123456789012"
-            G = "2"
-
-            chatroom = self.create_chatroom(chatroom_name, client_socket, P, G)
-            self.write(f"Chatroom '{chatroom_name}' created", client_socket)
+            chatroom = self.create_chatroom(chatroom_name, client, self.P, self.G)
+            self.write(f"Chatroom '{chatroom_name}' created", client)
             chatroom.run()
         elif choice.lower() == "join":
-            self.chatroom_list(client_socket)
-            self.write("Enter the name of the chatroom you want to join: ", client_socket)
-            chatroom_name = self.receive(client_socket)
+            self.chatroom_list(client)
+            self.write("Enter the name of the chatroom you want to join: ", client)
+            chatroom_name = self.receive(client)
 
             if chatroom_name in self.chatrooms:
                 chatroom = self.chatrooms[chatroom_name]
 
-                if chatroom.joining_client is not None:
-                    chatroom.joining_client = client_socket
-                    chatroom.clients[1] = client_socket
-                    self.write(f"Joined {chatroom_name}", client_socket)
+                if chatroom.joining_client is None:
+                    chatroom.joining_client = client
+                    chatroom.clients[1] = client
+                    self.write(f"Joined {chatroom_name}", client)
                 else:
-                    self.write("Failed to connect", client_socket)
+                    self.write("Failed to connect chatroom is full", client)
             else:
-                self.write(f"Chatroom '{chatroom_name}' does not exist.", client_socket)
+                self.write(f"Chatroom '{chatroom_name}' does not exist.", client)
         else:
-            self.write("Invalid choice", client_socket)
+            self.write("Invalid choice", client)
 
     def start(self):
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

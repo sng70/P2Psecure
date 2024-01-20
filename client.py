@@ -7,6 +7,8 @@ from tkinter import simpledialog
 import cryptography.hazmat.primitives.ciphers
 from cryptography.hazmat.primitives.asymmetric import dh
 
+import os
+
 HOST = "127.0.0.1"
 PORT = 9090
 
@@ -64,18 +66,23 @@ class Client:
         header = f"{len(message):<5}"
         return header
 
+    def generate_iv(self):
+        return os.urandom(16)
+
     def receive_message(self):
         message_len = int(self.sock.recv(5).decode("utf-8"))
         message = self.sock.recv(message_len)
 
-        if self.keys_exchanged:
-            self.decrypt_message(message, self.shared_secret)
-        else:
-            pass
-
         if len(message) != message_len:
             self.sock.send("Error while receiving the message".encode('utf-8'))
         else:
+            if self.keys_exchanged:
+                iv = message[:16]
+                message = message[16:]
+                self.decrypt_message(message, self.shared_secret) #3rd argument = iv
+
+                return message.decode('utf-8')
+
             return message.decode("utf-8")
 
     def encrypt_message(self, message, key):
@@ -102,13 +109,20 @@ class Client:
 
     def write(self):
         message = f"{self.input_area.get('1.0', 'end')}"
-        header = self.create_header(message)
-
-        self.sock.send(header.encode('utf-8'))
 
         if self.keys_exchanged:
-            self.sock.send(self.encrypt_message(message.encode('utf-8'), self.shared_secret))
+            message = f"{self.nickname}: + {message}".encode('utf-8')
+            iv = self.generate_iv()
+            message = iv + message
+
+            header = self.create_header(message)
+
+            self.sock.send(header.encode('utf-8'))
+            self.sock.send(self.encrypt_message(message.encode('utf-8'), self.shared_secret) + iv)
         else:
+            header = self.create_header(message)
+
+            self.sock.send(header.encode('utf-8'))
             self.sock.send(message.encode('utf-8'))
 
         self.input_area.delete('1.0', 'end')
@@ -141,9 +155,8 @@ class Client:
         while self.running:
             try:
                 message = self.receive_message()
-                if message == 'NICK':
-                    self.sock.send(self.nickname.encode('utf-8'))
-                elif message == "Diffie-Helman":
+
+                if message == "Diffie-Helman":
                     self.key_exchange()
                     self.keys_exchanged = True
                 else:
