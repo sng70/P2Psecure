@@ -44,6 +44,9 @@ class Server:
         for chatroom in chatroom_names:
             self.write(chatroom, client)
 
+    def pass_message(self, message, client):
+        pass
+
     def handle_client(self, client):
         time.sleep(10)
         self.write("Welcome to the chat server! Do you want to create or join a chatroom? (create/join) ", client)
@@ -56,6 +59,7 @@ class Server:
             chatroom = self.create_chatroom(chatroom_name, client, self.P, self.G)
             self.write(f"Chatroom '{chatroom_name}' created", client)
             chatroom.run()
+
         elif choice.lower() == "join":
             self.chatroom_list(client)
             self.write("Enter the name of the chatroom you want to join: ", client)
@@ -78,7 +82,7 @@ class Server:
     def start(self):
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server_socket.bind((self.ip, self.port))
-        server_socket.listen(5)
+        server_socket.listen(10)
 
         print("Server is waiting.... :3")
 
@@ -90,4 +94,4 @@ class Server:
             client_handler.start()
 
 
-Server("localhost", 9090).start()
+Server("localhost", 9091).start()

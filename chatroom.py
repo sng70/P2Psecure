@@ -6,9 +6,10 @@ class Chatroom:
         self.joining_client = None
         self.clients = [self.host_client, self.joining_client]
 
-        self.P = P
-        self.G = G
+        self.P = str(P)
+        self.G = str(G)
 
+        self.keys_exchanged = False
 
     def broadcast(self, message):
         for client in self.clients:
@@ -27,7 +28,8 @@ class Chatroom:
 
     def receive(self, client):
         message_len = int(client.recv(5).decode("utf-8"))
-        message = client.recv(message_len)
+        message = client.recv(message_len).strip("\n")
+
 
         if len(message) != message_len:
             client.send("Error while receiving the message")
@@ -39,15 +41,17 @@ class Chatroom:
 
         self.broadcast(self.P)
         self.broadcast(self.G)
+        print(self.P, self.G)
 
         host_message = self.receive(self.host_client)
+        print(host_message)
         joining_message = self.receive(self.joining_client)
+        print(joining_message)
 
         self.host_client.send(joining_message)
         self.joining_client.send(host_message)
 
         self.broadcast("Key exchange ended")
-
 
     def handle(self):
         while True:
@@ -65,8 +69,8 @@ class Chatroom:
 
     def run(self):
         while True:
-            if self.joining_client is not None:
+            if self.joining_client is not None and self.keys_exchanged is False:
                 self.key_exchange()
-                self.handle()
+                self.keys_exchanged = True
             else:
                 self.handle()

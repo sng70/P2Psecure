@@ -4,13 +4,15 @@ import tkinter
 import tkinter.scrolledtext
 from tkinter import simpledialog
 
-import cryptography.hazmat.primitives.ciphers
+import cryptography.hazmat.primitives.ciphers.algorithms
+from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import dh
+import cryptography.hazmat.primitives.ciphers.modes
 
 import os
 
 HOST = "127.0.0.1"
-PORT = 9090
+PORT = 9091
 
 
 class Client:
@@ -24,6 +26,12 @@ class Client:
 
         self.nickname = simpledialog.askstring("Nickname", "Please choose a nickname", parent=msg)
         self.private_key = dh.generate_parameters(generator=2, key_size=2048).generate_private_key()
+        self.private_key_bytes = self.private_key.private_bytes(
+            encoding=serialization.Encoding.DER,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption()
+        )
+        self.private_key_int = int.from_bytes(self.private_key_bytes, byteorder='big')
         self.shared_secret = None
         self.keys_exchanged = False
 
@@ -71,7 +79,7 @@ class Client:
 
     def receive_message(self):
         message_len = int(self.sock.recv(5).decode("utf-8"))
-        message = self.sock.recv(message_len)
+        message = self.sock.recv(message_len).decode('utf-8')
 
         if len(message) != message_len:
             self.sock.send("Error while receiving the message".encode('utf-8'))
@@ -79,30 +87,35 @@ class Client:
             if self.keys_exchanged:
                 iv = message[:16]
                 message = message[16:]
-                self.decrypt_message(message, self.shared_secret) #3rd argument = iv
+                self.decrypt_message(message, self.shared_secret, iv)
+                return message
 
-                return message.decode('utf-8')
+            return message
 
-            return message.decode("utf-8")
-
-    def encrypt_message(self, message, key):
+    def encrypt_message(self, message, key, iv):
         key = key.encode('utf-8')
-        message = message.encode('utf-8')
 
-        cipher = cryptography.hazmat.primitives.ciphers.Cipher(cryptography.hazmat.primitives.ciphers.algorithms.AES(key), cryptography.hazmat.primitives.ciphers.modes.CFB8())
+        cipher = cryptography.hazmat.primitives.ciphers.Cipher(
+            cryptography.hazmat.primitives.ciphers.algorithms.AES(key),
+            cryptography.hazmat.primitives.ciphers.modes.CFB8(iv)
+        )
         encryptor = cipher.encryptor()
         ciphertext = encryptor.update(message) + encryptor.finalize()
 
         return ciphertext
 
-    def decrypt_message(self, message, key):
+    def decrypt_message(self, message, key, iv):
         key = key.encode('utf-8')
 
-        cipher = cryptography.hazmat.primitives.ciphers.Cipher(cryptography.hazmat.primitives.ciphers.algorithms.AES(key), cryptography.hazmat.primitives.ciphers.modes.CFB8())
+        cipher = cryptography.hazmat.primitives.ciphers.Cipher(
+            cryptography.hazmat.primitives.ciphers.algorithms.AES(key),
+            cryptography.hazmat.primitives.ciphers.modes.CFB8(iv)
+        )
         decryptor = cipher.decryptor()
 
         try:
             decrypted_message = decryptor.update(message) + decryptor.finalize()
+
             return decrypted_message.decode('utf-8')
         except:
             return "Decryption failed"
@@ -111,14 +124,14 @@ class Client:
         message = f"{self.input_area.get('1.0', 'end')}"
 
         if self.keys_exchanged:
-            message = f"{self.nickname}: + {message}".encode('utf-8')
+            message = f"{self.nickname}: {message}".encode('utf-8')
             iv = self.generate_iv()
             message = iv + message
 
             header = self.create_header(message)
 
             self.sock.send(header.encode('utf-8'))
-            self.sock.send(self.encrypt_message(message.encode('utf-8'), self.shared_secret) + iv)
+            self.sock.send(self.encrypt_message(message, self.shared_secret, iv))
         else:
             header = self.create_header(message)
 
@@ -134,16 +147,22 @@ class Client:
         self.sock.send(message.encode('utf-8'))
 
     def key_exchange(self):
+        print("started")
         P = self.receive_message()
+        print(P)
         G = self.receive_message()
+        print(G)
 
-        public_key = pow(int(G), int(self.private_key), int(P))
+        public_key = pow(int(G), self.private_key_int, int(P))
+        print(public_key)
         self.write_message(str(public_key))
+        print("sent")
 
         bob_key = int(self.receive_message())
+        print(bob_key)
 
-        self.shared_secret = pow(bob_key, int(self.private_key), int(P))
-
+        self.shared_secret = pow(bob_key, self.private_key_int, int(P))
+        print(self.shared_secret)
 
     def stop(self):
         self.running = False
