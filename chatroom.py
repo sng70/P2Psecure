@@ -1,5 +1,5 @@
 class Chatroom:
-    def __init__(self, chatroom_name, host_client, P, G):
+    def __init__(self, chatroom_name, host_client, P, G, ip, port):
         self.chatroom_name = chatroom_name
 
         self.host_client = host_client
@@ -26,15 +26,8 @@ class Chatroom:
         client.send(message.encode('utf-8'))
 
 
-    def receive(self, client):
-        message_len = int(client.recv(5).decode("utf-8"))
-        message = client.recv(message_len).strip("\n")
-
-
-        if len(message) != message_len:
-            client.send("Error while receiving the message")
-        else:
-            return message.decode("utf-8")
+    def passed_message(self, message, client):
+        pass
 
     def key_exchange(self):
         self.broadcast("Diffie-Helman")

@@ -92,6 +92,3 @@ class Server:
 
             client_handler = threading.Thread(target=self.handle_client, args=(client_socket,))
             client_handler.start()
-
-
-Server("localhost", 9091).start()
