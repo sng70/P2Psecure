@@ -1,8 +1,12 @@
 import socket
+
 import threading
+
 import tkinter
 import tkinter.scrolledtext
 from tkinter import simpledialog
+
+import customtkinter
 
 import cryptography.hazmat.primitives.ciphers.algorithms
 from cryptography.hazmat.primitives import serialization
@@ -25,6 +29,7 @@ class Client:
         msg.withdraw()
 
         self.nickname = simpledialog.askstring("Nickname", "Please choose a nickname", parent=msg)
+
         self.private_key = dh.generate_parameters(generator=2, key_size=2048).generate_private_key()
         self.private_key_bytes = self.private_key.private_bytes(
             encoding=serialization.Encoding.DER,
