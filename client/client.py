@@ -6,17 +6,12 @@ import tkinter
 import tkinter.scrolledtext
 from tkinter import simpledialog
 
-import customtkinter
-
 import cryptography.hazmat.primitives.ciphers.algorithms
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import dh
 import cryptography.hazmat.primitives.ciphers.modes
 
 import os
-
-HOST = "127.0.0.1"
-PORT = 9091
 
 
 class Client:
@@ -152,22 +147,16 @@ class Client:
         self.sock.send(message.encode('utf-8'))
 
     def key_exchange(self):
-        print("started")
+
         P = self.receive_message()
-        print(P)
         G = self.receive_message()
-        print(G)
 
         public_key = pow(int(G), self.private_key_int, int(P))
-        print(public_key)
         self.write_message(str(public_key))
-        print("sent")
 
         bob_key = int(self.receive_message())
-        print(bob_key)
 
         self.shared_secret = pow(bob_key, self.private_key_int, int(P))
-        print(self.shared_secret)
 
     def stop(self):
         self.running = False
@@ -180,7 +169,7 @@ class Client:
             try:
                 message = self.receive_message()
 
-                if message == "Diffie-Helman":
+                if message == "Diffie-Hellman":
                     self.key_exchange()
                     self.keys_exchanged = True
                 else:
@@ -196,6 +185,3 @@ class Client:
                 self.sock.send("Connection ended".encode('utf-8'))
                 self.sock.close()
                 break
-
-
-client = Client(HOST, PORT)
