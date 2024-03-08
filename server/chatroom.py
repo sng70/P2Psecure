@@ -4,13 +4,10 @@ import threading
 
 
 class Chatroom:
-    def __init__(self, chatroom_name, P, G, ip, port):
+    def __init__(self, chatroom_name, P, G, host_client):
         self.chatroom_name = chatroom_name
 
-        self.ip = ip
-        self.port = port
-
-        self.host_client = None
+        self.host_client = host_client
         self.joining_client = None
         self.clients = [self.host_client, self.joining_client]
 
@@ -18,25 +15,6 @@ class Chatroom:
         self.G = str(G)
 
         self.keys_exchanged = False
-
-    """
-    Chatroom server initialization
-    """
-
-    def start_chatroom_server(self):
-        chatroom_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        chatroom_socket.bind((self.ip, self.port))
-        chatroom_socket.listen(2)
-
-        print(f"Chatroom '{self.chatroom_name}' started")
-
-        while True:
-            client, address = chatroom_socket.accept()
-            self.clients.append(client)
-            print(f"Connected with {str(address)}")
-
-            thread = threading.Thread(target=self.start_chatroom_logic, args=(client,))
-            thread.run()
 
     """
     Chatroom message handling methods
